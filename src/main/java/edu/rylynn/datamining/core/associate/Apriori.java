@@ -8,11 +8,12 @@ public class Apriori {
     private Map<String, Integer> itemCount;
     private Map<String, Integer> itemIndex;
     private List<String[]> itemData;
+    private Map<ItemSet, Integer> frequentItemSet;
 
     public Apriori(int minSupport, int minConfidence, List<String> data) {
         this.minSupport = minSupport;
         this.minConfidence = minConfidence;
-
+        this.frequentItemSet = new HashMap<>();
         itemData = new ArrayList<>();
         itemCount = new HashMap<>();
         itemIndex = new HashMap<>();
@@ -27,8 +28,18 @@ public class Apriori {
         List<String> list = new ArrayList<String>();
         list.add("a,b,c,d");
         list.add("c,d,e,f");
+        list.add("c,d,e,f");
+        list.add("c,d,e,f");
+        list.add("c,d,e,f");
+        Map<ItemSet, Integer> hashMap = new Apriori(2, 2, list).getFrequentItemSet();
+        Iterator iter = hashMap.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            ItemSet key = (ItemSet) entry.getKey();
+            Integer val = (int) entry.getValue();
+            System.out.println(key + "count:" + val);
+        }
 
-        new Apriori(2, 2, list).firstScan();
     }
 
     public List<String[]> getitemData() {
@@ -51,7 +62,7 @@ public class Apriori {
         this.minConfidence = minConfidence;
     }
 
-    public int[] firstScan() {
+    private int[] firstScan() {
         int binSize = 100;
         int index = 1;
         int[] hashBin = new int[binSize];
@@ -69,27 +80,65 @@ public class Apriori {
             for (int i = 0; i < line.length; i++) {
                 for (int j = i + 1; j < line.length; j++) {
                     ItemPair itemPair = new ItemPair(itemIndex.get(line[i]), itemIndex.get(line[j]));
-                    System.out.println(itemIndex.get(line[i]) + "," + itemIndex.get(line[j]));
-                    System.out.println(itemPair.hashCode());
+                    //System.out.println(itemIndex.get(line[i]) + "," + itemIndex.get(line[j]));
+                    //System.out.println(itemPair.hashCode());
                     int binNum = itemPair.hashCode() % 100;
                     hashBin[binNum] += 1;
                 }
             }
         }
-        Iterator<Map.Entry<String, Integer>> it = itemCount.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Integer> entry = it.next();
-            System.out.println("key=" + entry.getKey() + "," + "value=" + entry.getValue());
-        }
-        for (int i = 0; i < 100; i++) {
-            System.out.println(hashBin[i]);
-        }
+//        Iterator<Map.Entry<String, Integer>> it = itemCount.entrySet().iterator();
+//        while (it.hasNext()) {
+//            Map.Entry<String, Integer> entry = it.next();
+//            System.out.println("key=" + entry.getKey() + "," + "value=" + entry.getValue());
+//        }
+//        for (int i = 0; i < 100; i++) {
+//            System.out.println(hashBin[i]);
+//        }
         return hashBin;
     }
 
-    public ItemSet generateSuperSet(ItemSet cn1, ItemSet cn2) {
+    private Set<ItemPair> secondScan(int[] hashBin) {
+        //cpy algorithm
+        Set<ItemPair> c2 = new HashSet<>();
+        for (String[] line : itemData) {
+            for (int i = 0; i < line.length; i++) {
+                int counti = itemCount.get(line[i]);
+                if (counti >= minSupport) {
+                    int[] seti = new int[1];
+                    seti[0] = itemIndex.get(line[i]);
+                    ItemSet itemSeti = new ItemSet(1, seti);
+                    if (!this.frequentItemSet.containsKey(itemSeti)) {
+                        System.out.println(itemSeti + ",hash:" + itemSeti.hashCode());
+                        this.frequentItemSet.put(itemSeti, counti);
+                    }
+                    for (int j = i + 1; j < line.length; j++) {
+                        int countj = itemCount.get(line[j]);
+                        if (countj >= minSupport) {
+                            int[] setj = new int[1];
+                            setj[0] = itemIndex.get(line[j]);
+                            ItemSet itemSetj = new ItemSet(1, setj);
+                            if (!this.frequentItemSet.containsKey(itemSetj)) {
+                                this.frequentItemSet.put(itemSetj, countj);
+                            }
+                            ItemPair candicateItemPair = new ItemPair(itemIndex.get(line[i]), itemIndex.get(line[j]));
+                            int binIndex = candicateItemPair.hashCode() % 100;
+                            if (hashBin[binIndex] >= minSupport) {
+                                c2.add(candicateItemPair);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return c2;
+    }
+
+    private ItemSet generateSuperSet(ItemSet cn1, ItemSet cn2) {
         int[] cn1Item = cn1.getItem();
         int[] cn2Item = cn2.getItem();
+        Arrays.sort(cn1Item);
+        Arrays.sort(cn2Item);
         int len1 = cn1Item.length;
         int len2 = cn2Item.length;
         int[] superSet = new int[len1 + 1];
@@ -103,32 +152,22 @@ public class Apriori {
                 }
             }
             if (cn1Item[len1 - 1] != cn2Item[len1 - 1]) {
-                superSet[len1] = cn2Item[len1 - 1];
+                if (cn1Item[len1 - 1] < cn2Item[len1 - 1]) {
+                    superSet[len1 - 1] = cn1Item[len1 - 1];
+                    superSet[len1] = cn2Item[len1 - 1];
+                } else {
+                    superSet[len1 - 1] = cn2Item[len1 - 1];
+                    superSet[len1] = cn1Item[len1 - 1];
+                }
+
                 return new ItemSet(len1 + 1, superSet);
             }
         }
         return null;
     }
 
-    public void secondScan(int[] hashBin) {
-        List<ItemPair> c2 = new ArrayList<>();
 
-        for (String[] line : itemData) {
-            for (int i = 0; i < line.length; i++) {
-                for (int j = i; j < line.length; j++) {
-                    if (itemCount.get(line[i]) >= minSupport && itemCount.get(line[j]) >= minSupport) {
-                        ItemPair candicateItemPair = new ItemPair(itemIndex.get(line[i]), itemIndex.get(line[j]));
-                        int binIndex = candicateItemPair.hashCode() % 100;
-                        if (hashBin[binIndex] >= minSupport) {
-                            c2.add(candicateItemPair);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    public int countItemSet(ItemSet itemSet) {
+    private int countItemSet(ItemSet itemSet) {
         int[] items = itemSet.getItem();
         int count = 0;
         for (String[] line : itemData) {
@@ -152,7 +191,7 @@ public class Apriori {
         return count;
     }
 
-    public List<ItemSet> generateSubSet(ItemSet itemSet) {
+    private List<ItemSet> generateSubSet(ItemSet itemSet) {
         List<ItemSet> subSets = new ArrayList<>();
         int[] items = itemSet.getItem();
         int superSetLen = items.length;
@@ -169,41 +208,67 @@ public class Apriori {
         return subSets;
     }
 
-    public List<ItemSet> getFrequentItemSet() {
+    public Map<ItemSet, Integer> getFrequentItemSet() {
         int[] hashBin = firstScan();
 
-        secondScan(hashBin);
+        Set<ItemPair> c2 = secondScan(hashBin);
+        if (c2.size() == 0) {
+            System.out.println("No frequent item set...");
+        }
 
-        List<ItemSet> frequentSet = new ArrayList<>();
-        List<ItemSet> newFrequentSet = null;
 
-        while (newFrequentSet != null) {
-            newFrequentSet.clear();
-            List<ItemSet> superSets = new ArrayList<>();
-            for (int i = 0; i < frequentSet.size(); i++) {
-                for (int j = i + 1; j < frequentSet.size(); j++) {
-                    ItemSet cni = frequentSet.get(i);
-                    ItemSet cnj = frequentSet.get(j);
+        Set<ItemSet> lastFrequentSet = new HashSet<>();       //C_(n-1)
+
+        for (ItemPair c2i : c2) {
+            int[] a = new int[2];
+            a[0] = c2i.i;
+            a[1] = c2i.j;
+            ItemSet c2seti = new ItemSet(2, a);
+            int count = countItemSet(c2seti);
+            if (count >= minSupport) {
+                if (!this.frequentItemSet.containsKey(c2seti)) {
+                    this.frequentItemSet.put(c2seti, count);
+                }
+                lastFrequentSet.add(c2seti);
+            }
+        }
+
+
+        while (lastFrequentSet.size() != 0) {//from C_(n-1) get C_n and the lastFrequentSet is the C_(n-1)
+
+
+            System.out.println(lastFrequentSet);
+            Set<ItemSet> newFrequentSet = new HashSet<>();
+
+            for (ItemSet cni : lastFrequentSet) {
+                for (ItemSet cnj : lastFrequentSet) {
+                    //get the candicate set
                     ItemSet superSet = generateSuperSet(cni, cnj);
+                    System.out.println(superSet);
                     if (superSet != null) {
+                        //get the subset of the candicate set
+                        //and judge if all the subset of the candicateset is in the frequentItemSet
                         List<ItemSet> subSets = generateSubSet(superSet);
                         int flag = 1;
                         for (ItemSet subSet : subSets) {
-                            if (countItemSet(subSet) < minSupport) {
+                            if (!this.frequentItemSet.containsKey(subSet)) {
                                 flag = 0;
                                 break;
                             }
-                            if (flag == 1) {
-                                frequentSet.add(superSet);
-                                newFrequentSet.add(superSet);
+                        }
+                        if (flag == 1) {
+                            if (!this.frequentItemSet.containsKey(superSet)) {
+                                frequentItemSet.put(superSet, countItemSet(superSet));
                             }
+                            newFrequentSet.add(superSet);
                         }
                     }
                 }
             }
-
+            lastFrequentSet.clear();
+            lastFrequentSet = newFrequentSet;
         }
-        return frequentSet;
+        return frequentItemSet;
     }
 
     class ItemPair {
@@ -233,6 +298,7 @@ public class Apriori {
     class ItemSet {
         private int size;
         private int[] item;
+        private int hash = 0;
 
         public ItemSet(int size, int[] item) {
             this.size = size;
@@ -251,10 +317,35 @@ public class Apriori {
         public String toString() {
             StringBuffer sb = new StringBuffer();
             sb.append("ItemSet:");
-            for(int i: item){
-                sb.append(i+" ");
+            for (int i : item) {
+                sb.append(i + " ");
             }
             return sb.toString();
+        }
+
+        @Override
+        public int hashCode() {
+            int h = hash;
+            if (h == 0 && size > 0) {
+                int val[] = item;
+
+                for (int i = 0; i < size; i++) {
+                    h = 31 * h + val[i];
+                }
+                hash = h;
+            }
+            return h;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            ItemSet newset = (ItemSet) obj;
+            for (int i = 0; i < this.size; i++) {
+                if (newset.item[i] != this.item[i]) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
