@@ -1,5 +1,7 @@
 package edu.rylynn.datamining.core.associate;
 
+import edu.rylynn.datamining.core.associate.common.ItemSet;
+
 import java.util.*;
 
 public class FPGrowth {
@@ -10,7 +12,7 @@ public class FPGrowth {
     private Map<String, Integer> itemIndex;
     private List<String[]> itemData;
     private Map<ItemSet, Integer> frequentItemSet;
-    private FPTree fpTree;
+    private TreeNode fpTree;
 
     public FPGrowth(int minSupport, int minConfidence, List<String> data) {
 
@@ -25,11 +27,11 @@ public class FPGrowth {
             itemData.add(line.split(","));
         }
 
-        fpTree = new FPTree();
+        fpTree = new TreeNode(-1, 0, null, null);
     }
 
     public static void main(String[] args) {
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         list.add("a,b,c,d");
         list.add("c,d,e,f");
         list.add("c,d,e,f");
@@ -77,103 +79,24 @@ public class FPGrowth {
 
     }
 
-    private class Node {
+    private class TreeNode {
         int index;
         int count;
-        Node next;
-        Node previousNode;
+        List<TreeNode> next;
+        TreeNode previousNode;
 
-        public Node(int index, int count, Node next, Node previousNode) {
+        public TreeNode(int index, int count, List<TreeNode> next, TreeNode previousNode) {
             this.index = index;
             this.count = count;
-            this.next = null;
-            this.previousNode = previousNode;
-        }
-
-        public void setIndex(int index) {
-            this.index = index;
-        }
-
-        public void setCount(int count) {
-            this.count = count;
-        }
-
-        public void setNext(Node next) {
             this.next = next;
-        }
-
-        public void setPreviousNode(Node previousNode) {
             this.previousNode = previousNode;
         }
-    }
 
-    private class FPTree {
-        Node thisNode = null;
-        List<FPTree> fpnodes;
-
-        public FPTree() {
-            fpnodes = new ArrayList<>();
-        }
-
-        public void addNode(FPTree tree, int index) {
+        public void addNode() {
 
         }
-
     }
 
 }
 
-class ItemSet {
-    private int size;
-    private int[] item;
-    private int hash = 0;
-
-    public ItemSet(int size, int[] item) {
-        this.size = size;
-        this.item = item;
-    }
-
-    public int getSize() {
-        return size;
-    }
-
-    public int[] getItem() {
-        return item;
-    }
-
-    @Override
-    public String toString() {
-        StringBuffer sb = new StringBuffer();
-        sb.append("ItemSet:");
-        for (int i : item) {
-            sb.append(i + " ");
-        }
-        return sb.toString();
-    }
-
-    @Override
-    public int hashCode() {
-        int h = hash;
-        if (h == 0 && size > 0) {
-            int val[] = item;
-
-            for (int i = 0; i < size; i++) {
-                h = 31 * h + val[i];
-            }
-            hash = h;
-        }
-        return h;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        ItemSet newset = (ItemSet) obj;
-        for (int i = 0; i < this.size; i++) {
-            if (newset.item[i] != this.item[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-}
 

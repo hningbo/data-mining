@@ -1,5 +1,7 @@
 package edu.rylynn.datamining.core.associate;
 
+import edu.rylynn.datamining.core.associate.common.ItemSet;
+
 import java.util.*;
 
 public class Apriori {
@@ -67,7 +69,6 @@ public class Apriori {
         int index = 1;
         int[] hashBin = new int[binSize];
         for (String[] line : itemData) {
-
             for (int i = 0; i < line.length; i++) {
                 if (itemCount.containsKey(line[i])) {
                     itemCount.put(line[i], itemCount.get(line[i]) + 1);
@@ -109,7 +110,7 @@ public class Apriori {
                     seti[0] = itemIndex.get(line[i]);
                     ItemSet itemSeti = new ItemSet(1, seti);
                     if (!this.frequentItemSet.containsKey(itemSeti)) {
-                        System.out.println(itemSeti + ",hash:" + itemSeti.hashCode());
+
                         this.frequentItemSet.put(itemSeti, counti);
                     }
                     for (int j = i + 1; j < line.length; j++) {
@@ -235,16 +236,12 @@ public class Apriori {
 
 
         while (lastFrequentSet.size() != 0) {//from C_(n-1) get C_n and the lastFrequentSet is the C_(n-1)
-
-
-            System.out.println(lastFrequentSet);
             Set<ItemSet> newFrequentSet = new HashSet<>();
 
             for (ItemSet cni : lastFrequentSet) {
                 for (ItemSet cnj : lastFrequentSet) {
                     //get the candicate set
                     ItemSet superSet = generateSuperSet(cni, cnj);
-                    System.out.println(superSet);
                     if (superSet != null) {
                         //get the subset of the candicate set
                         //and judge if all the subset of the candicateset is in the frequentItemSet
@@ -295,58 +292,5 @@ public class Apriori {
         }
     }
 
-    class ItemSet {
-        private int size;
-        private int[] item;
-        private int hash = 0;
-
-        public ItemSet(int size, int[] item) {
-            this.size = size;
-            this.item = item;
-        }
-
-        public int getSize() {
-            return size;
-        }
-
-        public int[] getItem() {
-            return item;
-        }
-
-        @Override
-        public String toString() {
-            StringBuffer sb = new StringBuffer();
-            sb.append("ItemSet:");
-            for (int i : item) {
-                sb.append(i + " ");
-            }
-            return sb.toString();
-        }
-
-        @Override
-        public int hashCode() {
-            int h = hash;
-            if (h == 0 && size > 0) {
-                int val[] = item;
-
-                for (int i = 0; i < size; i++) {
-                    h = 31 * h + val[i];
-                }
-                hash = h;
-            }
-            return h;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            ItemSet newset = (ItemSet) obj;
-            for (int i = 0; i < this.size; i++) {
-                if (newset.item[i] != this.item[i]) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
 
 }
