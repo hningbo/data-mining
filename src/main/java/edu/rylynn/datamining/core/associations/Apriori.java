@@ -1,24 +1,24 @@
-package edu.rylynn.datamining.core.associate;
+package edu.rylynn.datamining.core.associations;
 
-import edu.rylynn.datamining.core.associate.common.ItemSet;
+import edu.rylynn.datamining.core.associations.common.ItemSet;
 
 import java.util.*;
 
 public class Apriori {
-    private int minSupport;
-    private int minConfidence;
-    private Map<String, Integer> itemCount;
-    private Map<String, Integer> itemIndex;
+    private double minSupport;
+    private double minConfidence;
+    private Map<String, Integer> transaction;
+    private List<String> itemIndex;
     private List<String[]> itemData;
     private Map<ItemSet, Integer> frequentItemSet;
 
-    public Apriori(int minSupport, int minConfidence, List<String> data) {
-        this.minSupport = minSupport;
+    public Apriori(double minSupport, double minConfidence, List<String> data) {
+        this.minSupport = minSupport * data.size();
         this.minConfidence = minConfidence;
         this.frequentItemSet = new HashMap<>();
         itemData = new ArrayList<>();
-        itemCount = new HashMap<>();
-        itemIndex = new HashMap<>();
+        transaction = new HashMap<>();
+        itemIndex = new ArrayList<>();
 
         for (String line : data) {
             itemData.add(line.split(","));
@@ -33,14 +33,7 @@ public class Apriori {
         list.add("c,d,e,f");
         list.add("c,d,e,f");
         list.add("c,d,e,f");
-        Map<ItemSet, Integer> hashMap = new Apriori(2, 2, list).getFrequentItemSet();
-        Iterator iter = hashMap.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry entry = (Map.Entry) iter.next();
-            ItemSet key = (ItemSet) entry.getKey();
-            Integer val = (int) entry.getValue();
-            System.out.println(key + "count:" + val);
-        }
+        new Apriori(0.2, 0.9, list).generateRules();
 
     }
 
@@ -48,19 +41,19 @@ public class Apriori {
         return itemData;
     }
 
-    public int getMinSupport() {
+    public double getMinSupport() {
         return minSupport;
     }
 
-    public void setMinSupport(int minSupport) {
+    public void setMinSupport(double minSupport) {
         this.minSupport = minSupport;
     }
 
-    public int getMinConfidence() {
+    public double getMinConfidence() {
         return minConfidence;
     }
 
-    public void setMinConfidence(int minConfidence) {
+    public void setMinConfidence(double minConfidence) {
         this.minConfidence = minConfidence;
     }
 
@@ -70,17 +63,18 @@ public class Apriori {
         int[] hashBin = new int[binSize];
         for (String[] line : itemData) {
             for (int i = 0; i < line.length; i++) {
-                if (itemCount.containsKey(line[i])) {
-                    itemCount.put(line[i], itemCount.get(line[i]) + 1);
+                if (transaction.containsKey(line[i])) {
+                    transaction.put(line[i], transaction.get(line[i]) + 1);
                 } else {
-                    itemCount.put(line[i], 1);
-                    itemIndex.put(line[i], index++);
+                    transaction.put(line[i], 1);
+                    itemIndex.add(line[i]);
                 }
 
             }
             for (int i = 0; i < line.length; i++) {
                 for (int j = i + 1; j < line.length; j++) {
-                    ItemPair itemPair = new ItemPair(itemIndex.get(line[i]), itemIndex.get(line[j]));
+
+                    ItemPair itemPair = new ItemPair(itemIndex.indexOf(line[i]), itemIndex.indexOf(line[j]));
                     //System.out.println(itemIndex.get(line[i]) + "," + itemIndex.get(line[j]));
                     //System.out.println(itemPair.hashCode());
                     int binNum = itemPair.hashCode() % 100;
@@ -88,7 +82,7 @@ public class Apriori {
                 }
             }
         }
-//        Iterator<Map.Entry<String, Integer>> it = itemCount.entrySet().iterator();
+//        Iterator<Map.Entry<String, Integer>> it = transaction.entrySet().iterator();
 //        while (it.hasNext()) {
 //            Map.Entry<String, Integer> entry = it.next();
 //            System.out.println("key=" + entry.getKey() + "," + "value=" + entry.getValue());
@@ -104,25 +98,25 @@ public class Apriori {
         Set<ItemPair> c2 = new HashSet<>();
         for (String[] line : itemData) {
             for (int i = 0; i < line.length; i++) {
-                int counti = itemCount.get(line[i]);
+                int counti = transaction.get(line[i]);
                 if (counti >= minSupport) {
                     int[] seti = new int[1];
-                    seti[0] = itemIndex.get(line[i]);
+                    seti[0] = itemIndex.indexOf(line[i]);
                     ItemSet itemSeti = new ItemSet(1, seti);
                     if (!this.frequentItemSet.containsKey(itemSeti)) {
 
                         this.frequentItemSet.put(itemSeti, counti);
                     }
                     for (int j = i + 1; j < line.length; j++) {
-                        int countj = itemCount.get(line[j]);
+                        int countj = transaction.get(line[j]);
                         if (countj >= minSupport) {
                             int[] setj = new int[1];
-                            setj[0] = itemIndex.get(line[j]);
+                            setj[0] = itemIndex.indexOf(line[j]);
                             ItemSet itemSetj = new ItemSet(1, setj);
                             if (!this.frequentItemSet.containsKey(itemSetj)) {
                                 this.frequentItemSet.put(itemSetj, countj);
                             }
-                            ItemPair candicateItemPair = new ItemPair(itemIndex.get(line[i]), itemIndex.get(line[j]));
+                            ItemPair candicateItemPair = new ItemPair(itemIndex.indexOf(line[i]), itemIndex.indexOf(line[j]));
                             int binIndex = candicateItemPair.hashCode() % 100;
                             if (hashBin[binIndex] >= minSupport) {
                                 c2.add(candicateItemPair);
@@ -138,8 +132,6 @@ public class Apriori {
     private ItemSet generateSuperSet(ItemSet cn1, ItemSet cn2) {
         int[] cn1Item = cn1.getItem();
         int[] cn2Item = cn2.getItem();
-        Arrays.sort(cn1Item);
-        Arrays.sort(cn2Item);
         int len1 = cn1Item.length;
         int len2 = cn2Item.length;
         int[] superSet = new int[len1 + 1];
@@ -176,7 +168,7 @@ public class Apriori {
             for (int i = 0; i < items.length; i++) {
                 flag = 0;
                 for (int j = 0; j < line.length; j++) {
-                    if (itemIndex.get(line[j]) == items[i]) {
+                    if (itemIndex.indexOf(line[j]) == items[i]) {
                         flag = 1;
                         break;
                     }
@@ -211,7 +203,6 @@ public class Apriori {
 
     public Map<ItemSet, Integer> getFrequentItemSet() {
         int[] hashBin = firstScan();
-
         Set<ItemPair> c2 = secondScan(hashBin);
         if (c2.size() == 0) {
             System.out.println("No frequent item set...");
@@ -233,7 +224,6 @@ public class Apriori {
                 lastFrequentSet.add(c2seti);
             }
         }
-
 
         while (lastFrequentSet.size() != 0) {//from C_(n-1) get C_n and the lastFrequentSet is the C_(n-1)
             Set<ItemSet> newFrequentSet = new HashSet<>();
@@ -268,6 +258,63 @@ public class Apriori {
         return frequentItemSet;
     }
 
+    public void generateRules() {
+        getFrequentItemSet();
+        for (Map.Entry<ItemSet, Integer> entry : frequentItemSet.entrySet()) {
+            if (entry.getKey().getSize() > 1) {
+                ItemSet frequentItems = entry.getKey();
+                int[] items = frequentItems.getItem();
+                List<Integer> items1 = new ArrayList<>();
+                List<Integer> items2 = new ArrayList<>();
+                double supportAB = frequentItemSet.get(frequentItems);
+                System.out.println(frequentItems+", support: " + supportAB);
+
+                for (int i = 1; i < (1 << items.length); i++) {
+                    items1.clear();
+                    items2.clear();
+                    int index = 0;
+                    int j = i;
+                    while (index < items.length) {
+                        if (j % 2 == 1) {
+                            items1.add(items[index]);
+                        } else {
+                            items2.add(items[index]);
+                        }
+                        index++;
+                        j /= 2;
+                    }
+                    if (items1.size() == 0 || items2.size() == 0) {
+                        continue;
+                    }
+                    int[] item1Array = new int[items1.size()];
+                    for (int ii = 0; ii < items1.size(); ii++) {
+                        item1Array[ii] = items1.get(ii);
+                    }
+                    int[] item2Array = new int[items2.size()];
+                    for (int ii = 0; ii < items2.size(); ii++) {
+                        item2Array[ii] = items2.get(ii);
+                    }
+                    ItemSet A = new ItemSet(item1Array.length, item1Array);
+                    ItemSet B = new ItemSet(item2Array.length, item2Array);
+
+                    double supportA = frequentItemSet.get(A);
+                    double supportB = frequentItemSet.get(B);
+                    if (supportAB / supportA >= minConfidence) {
+
+                        System.out.print(A + ", support: " + supportA);
+
+                        System.out.print(" ==> ");
+
+                        System.out.print(B + ", support " + supportB);
+
+                        System.out.println("...   Condidence: " + supportAB / supportA);
+                    }
+                }
+            }
+            System.out.println();
+        }
+    }
+
     class ItemPair {
         private int i;
         private int j;
@@ -291,6 +338,5 @@ public class Apriori {
             return h;
         }
     }
-
 
 }
