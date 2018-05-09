@@ -1,27 +1,27 @@
-package edu.rylynn.datamining.core.associate;
+package edu.rylynn.datamining.core.associations;
 
-import edu.rylynn.datamining.core.associate.common.ItemSet;
+import edu.rylynn.datamining.core.associations.common.ItemSet;
 
 import java.util.*;
 
 public class Eclat {
-    List<String[]> itemData;
-    private int minSupport;
-    private int minConfidence;
+    private List<String[]> transaction;
+    private double minSupport;
+    private double minConfidence;
     private Map<ItemSet, Integer> frequentItemSet;
     private Map<ItemSet, Set<Integer>> tidSets;
     private Map<String, Integer> itemIndex;
 
-    public Eclat(int minSupport, int minConfidence, List<String> data) {
-        this.minSupport = minSupport;
+    public Eclat(double minSupport, double minConfidence, List<String> data) {
+        this.minSupport = minSupport*data.size();
         this.minConfidence = minConfidence;
         this.itemIndex = new HashMap<>();
         this.tidSets = new HashMap<>();
         this.frequentItemSet = new HashMap<>();
-        itemData = new ArrayList<>();
+        transaction = new ArrayList<>();
 
         for (String line : data) {
-            itemData.add(line.split(","));
+            transaction.add(line.split(","));
         }
     }
 
@@ -32,14 +32,14 @@ public class Eclat {
         list.add("c,d,e,f");
         list.add("c,d,e,f");
         list.add("c,d,e,f");
-        System.out.println(new Eclat(2, 2, list).generateFrequentItemSet());
+        new Eclat(0.2, 0.6, list).generateRules();
 
     }
 
     public void generateTIDSet() {
         int index = 0;
-        for (int i = 0; i < itemData.size(); i++) {
-            String[] line = itemData.get(i);
+        for (int i = 0; i < transaction.size(); i++) {
+            String[] line = transaction.get(i);
             for (int j = 0; j < line.length; j++) {
                 if (itemIndex.containsKey(line[j])) {
                     int thisIndex = itemIndex.get(line[j]);
@@ -133,5 +133,61 @@ public class Eclat {
             lastFrequentItemSet = newFrequentItemSet;
         }
         return this.frequentItemSet;
+    }
+    public void generateRules() {
+        generateFrequentItemSet();
+        for (Map.Entry<ItemSet, Integer> entry : frequentItemSet.entrySet()) {
+            if (entry.getKey().getSize() > 1) {
+                ItemSet frequentItems = entry.getKey();
+                int[] items = frequentItems.getItem();
+                List<Integer> items1 = new ArrayList<>();
+                List<Integer> items2 = new ArrayList<>();
+                double supportAB = frequentItemSet.get(frequentItems);
+                System.out.println(frequentItems+", support: " + supportAB);
+
+                for (int i = 1; i < (1 << items.length); i++) {
+                    items1.clear();
+                    items2.clear();
+                    int index = 0;
+                    int j = i;
+                    while (index < items.length) {
+                        if (j % 2 == 1) {
+                            items1.add(items[index]);
+                        } else {
+                            items2.add(items[index]);
+                        }
+                        index++;
+                        j /= 2;
+                    }
+                    if (items1.size() == 0 || items2.size() == 0) {
+                        continue;
+                    }
+                    int[] item1Array = new int[items1.size()];
+                    for (int ii = 0; ii < items1.size(); ii++) {
+                        item1Array[ii] = items1.get(ii);
+                    }
+                    int[] item2Array = new int[items2.size()];
+                    for (int ii = 0; ii < items2.size(); ii++) {
+                        item2Array[ii] = items2.get(ii);
+                    }
+                    ItemSet A = new ItemSet(item1Array.length, item1Array);
+                    ItemSet B = new ItemSet(item2Array.length, item2Array);
+
+                    double supportA = frequentItemSet.get(A);
+                    double supportB = frequentItemSet.get(B);
+                    if (supportAB / supportA >= minConfidence) {
+
+                        System.out.print(A + ", support: " + supportA);
+
+                        System.out.print(" ==> ");
+
+                        System.out.print(B + ", support " + supportB);
+
+                        System.out.println("...   Condidence: " + supportAB / supportA);
+                    }
+                }
+            }
+            System.out.println();
+        }
     }
 }
