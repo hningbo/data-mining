@@ -1,16 +1,15 @@
-package edu.rylynn.datamining.core.associate;
+package edu.rylynn.datamining.core.associations;
 
-import edu.rylynn.datamining.core.associate.common.ItemSet;
+import edu.rylynn.datamining.core.associations.common.ItemSet;
 
 import java.util.*;
 
 public class FPGrowth {
-
     private int minSupport;
     private int minConfidence;
     private List<Map.Entry<String, Integer>> itemCount;
     private Map<String, Integer> itemIndex;
-    private List<String[]> itemData;
+    private List<String[]> transaction;
     private Map<ItemSet, Integer> frequentItemSet;
     private TreeNode fpTree;
 
@@ -19,15 +18,15 @@ public class FPGrowth {
         this.minSupport = minSupport;
         this.minConfidence = minConfidence;
         this.frequentItemSet = new HashMap<>();
-        itemData = new ArrayList<>();
+        transaction = new ArrayList<>();
         itemCount = new ArrayList<>();
         itemIndex = new HashMap<>();
 
         for (String line : data) {
-            itemData.add(line.split(","));
+            transaction.add(line.split(","));
         }
 
-        fpTree = new TreeNode(-1, 0, null, null);
+        //fpTree = new TreeNode(-1, 0, null, null);
     }
 
     public static void main(String[] args) {
@@ -45,7 +44,7 @@ public class FPGrowth {
     public void firstScan() {
         int index = 1;
         Map<String, Integer> tempItemCount = new HashMap<>();
-        for (String[] line : itemData) {
+        for (String[] line : transaction) {
             for (int i = 0; i < line.length; i++) {
                 if (tempItemCount.containsKey(line[i])) {
                     tempItemCount.put(line[i], tempItemCount.get(line[i]) + 1);
@@ -67,10 +66,9 @@ public class FPGrowth {
     }
 
     public void buildTree() {
-        for (String[] line : itemData) {
+        for (String[] line : transaction) {
             for (int i = 0; i < line.length; i++) {
                 int index = itemIndex.get(line[i]);
-
             }
         }
     }
@@ -85,11 +83,11 @@ public class FPGrowth {
         List<TreeNode> next;
         TreeNode previousNode;
 
-        public TreeNode(int index, int count, List<TreeNode> next, TreeNode previousNode) {
+        public TreeNode(int index, int count, TreeNode previousNode) {
             this.index = index;
             this.count = count;
-            this.next = next;
-            this.previousNode = previousNode;
+            this.next = new ArrayList<>();
+            this.previousNode = null;
         }
 
         public void addNode() {

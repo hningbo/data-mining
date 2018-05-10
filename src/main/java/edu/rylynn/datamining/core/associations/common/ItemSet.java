@@ -1,4 +1,6 @@
-package edu.rylynn.datamining.core.associate.common;
+package edu.rylynn.datamining.core.associations.common;
+
+import java.util.Arrays;
 
 public class ItemSet {
     private int size;
@@ -8,6 +10,7 @@ public class ItemSet {
     public ItemSet(int size, int[] item) {
         this.size = size;
         this.item = item;
+        Arrays.sort(item);
     }
 
     public int getSize() {
@@ -21,10 +24,11 @@ public class ItemSet {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("ItemSet:");
+        sb.append("ItemSet:{");
         for (int i : item) {
-            sb.append(i + " ");
+            sb.append(i + ",");
         }
+        sb.append("}");
         return sb.toString();
     }
 

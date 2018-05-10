@@ -18,8 +18,8 @@ class Apriori(minSupport: Double, minConfidence: Double, data: List[String]) {
   }
 
   def generateSuperItemSet(cni: Set[String], cnj: Set[String]): Set[String] = {
-    val superSet = cni.intersect(cnj)
-    if (superSet.size == cni.size - 1)
+    val superSet = cni.++(cnj)
+    if (superSet.size == cni.size + 1)
       superSet
     else
       null
@@ -32,15 +32,17 @@ class Apriori(minSupport: Double, minConfidence: Double, data: List[String]) {
   }
 
   def generateFrequentItemSet: List[(Set[String], Double)] = {
-    //val items: List[Set[String]] = transactions.reduceLeft((x1, x2)=>x1.++(x2))
+    val items: Set[String] = transactions.reduce((x1, x2) => x1 ++ x2)
 
-    //val lastFrequentSet = items.map(item=>(item.toSet, countSupport(string2Set(item)))).filter(_._2>=minSupport).toList
+    val lastFrequentSet: List[(Set[String], Double)] = items.map(item => (string2Set(item), countSupport(string2Set(item)))).filter(_._2 >= minSupport).toList
+    frequentItemSet = frequentItemSet ++ lastFrequentSet
 
-    //frequentItemSet = frequentItemSet ++ lastFrequentSet
-    print(frequentItemSet)
+    //while (true) {
+      val superSet = lastFrequentSet.map(cni=>lastFrequentSet.map(cnj=>generateSuperItemSet(cni._1, cnj._1))).filter(superSet=>superSet!=null)
+      print(superSet)
 
-    null
-
+    //}
+    frequentItemSet
   }
 }
 
@@ -48,6 +50,6 @@ object Test {
   def main(args: Array[String]): Unit = {
     val list = List("a,b,c,d", "c,d,e,f", "c,d,e,f", "c,d,e,f", "c,d,e,f")
     val set = Set("a", "c")
-    new Apriori(0.2, 0.8, list).generateFrequentItemSet
+    new Apriori(0.3, 0.8, list).generateFrequentItemSet
   }
 }
