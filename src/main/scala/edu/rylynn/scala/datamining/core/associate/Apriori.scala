@@ -86,6 +86,6 @@ object Test {
   def main(args: Array[String]): Unit = {
     val list = List("a,b,c,d", "c,d,e,f", "c,d,e,f", "c,d,e,f", "c,d,e,f")
     //new Apriori(0.3, 0.8, list).generateFrequentItemSet.foreach(s=>println(s._1, s._2))
-    new Apriori(0.3, 0.8, list).generateRules.foreach(r=>println(r))
+    new Apriori(0.3, 0.8, list).generateRules.foreach(r=>println(r._1,"=>",r._2," ",r._3))
   }
 }
