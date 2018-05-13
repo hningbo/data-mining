@@ -27,12 +27,11 @@ public class Eclat {
 
     public static void main(String[] args) {
         List<String> list = new ArrayList<String>();
-        list.add("a,b,c,d");
-        list.add("c,d,e,f");
-        list.add("c,d,e,f");
-        list.add("c,d,e,f");
-        list.add("c,d,e,f");
-        new Eclat(0.2, 0.6, list).generateRules();
+        list.add("健康麦香包,皮蛋瘦肉粥,养颜红枣糕");
+        list.add("健康麦香包,香煎葱油饼,皮蛋瘦肉粥,八宝粥");
+        list.add("香煎葱油饼,皮蛋瘦肉粥,八宝粥");
+        list.add("香煎葱油饼,八宝粥");
+        new Eclat(0.5, 0.6, list).generateRules();
 
     }
 

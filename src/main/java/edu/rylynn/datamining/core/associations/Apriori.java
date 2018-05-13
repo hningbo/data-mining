@@ -10,10 +10,10 @@ public class Apriori {
     private Map<String, Integer> transaction;
     private List<String> itemIndex;
     private List<String[]> itemData;
-    private Map<ItemSet, Integer> frequentItemSet;
+    private Map<ItemSet, Double> frequentItemSet;
 
     public Apriori(double minSupport, double minConfidence, List<String> data) {
-        this.minSupport = minSupport * data.size();
+        this.minSupport = minSupport;
         this.minConfidence = minConfidence;
         this.frequentItemSet = new HashMap<>();
         itemData = new ArrayList<>();
@@ -28,12 +28,11 @@ public class Apriori {
 
     public static void main(String[] args) {
         List<String> list = new ArrayList<String>();
-        list.add("a,b,c,d");
-        list.add("c,d,e,f");
-        list.add("c,d,e,f");
-        list.add("c,d,e,f");
-        list.add("c,d,e,f");
-        new Apriori(0.2, 0.9, list).generateRules();
+        list.add("健康麦香包,皮蛋瘦肉粥,养颜红枣糕");
+        list.add("健康麦香包,香煎葱油饼,皮蛋瘦肉粥,八宝粥");
+        list.add("香煎葱油饼,皮蛋瘦肉粥,八宝粥");
+        list.add("香煎葱油饼,八宝粥");
+        new Apriori(0.5, 0.7, list).generateRules();
 
     }
 
@@ -95,26 +94,27 @@ public class Apriori {
 
     private Set<ItemPair> secondScan(int[] hashBin) {
         //cpy algorithm
+
         Set<ItemPair> c2 = new HashSet<>();
         for (String[] line : itemData) {
             for (int i = 0; i < line.length; i++) {
-                int counti = transaction.get(line[i]);
-                if (counti >= minSupport) {
+                double supporti = (double)transaction.get(line[i])/(double)itemData.size();
+                if (supporti >= minSupport) {
                     int[] seti = new int[1];
                     seti[0] = itemIndex.indexOf(line[i]);
                     ItemSet itemSeti = new ItemSet(1, seti);
                     if (!this.frequentItemSet.containsKey(itemSeti)) {
 
-                        this.frequentItemSet.put(itemSeti, counti);
+                        this.frequentItemSet.put(itemSeti, supporti);
                     }
                     for (int j = i + 1; j < line.length; j++) {
-                        int countj = transaction.get(line[j]);
-                        if (countj >= minSupport) {
+                        double supportj = (double)transaction.get(line[j])/(double)itemData.size();
+                        if (supportj >= minSupport) {
                             int[] setj = new int[1];
                             setj[0] = itemIndex.indexOf(line[j]);
                             ItemSet itemSetj = new ItemSet(1, setj);
                             if (!this.frequentItemSet.containsKey(itemSetj)) {
-                                this.frequentItemSet.put(itemSetj, countj);
+                                this.frequentItemSet.put(itemSetj, supportj);
                             }
                             ItemPair candicateItemPair = new ItemPair(itemIndex.indexOf(line[i]), itemIndex.indexOf(line[j]));
                             int binIndex = candicateItemPair.hashCode() % 100;
@@ -126,6 +126,7 @@ public class Apriori {
                 }
             }
         }
+
         return c2;
     }
 
@@ -160,7 +161,7 @@ public class Apriori {
     }
 
 
-    private int countItemSet(ItemSet itemSet) {
+    private double countItemSet(ItemSet itemSet) {
         int[] items = itemSet.getItem();
         int count = 0;
         for (String[] line : itemData) {
@@ -181,7 +182,7 @@ public class Apriori {
                 count++;
             }
         }
-        return count;
+        return (double)count/(double)itemData.size();
     }
 
     private List<ItemSet> generateSubSet(ItemSet itemSet) {
@@ -201,7 +202,7 @@ public class Apriori {
         return subSets;
     }
 
-    public Map<ItemSet, Integer> getFrequentItemSet() {
+    public Map<ItemSet, Double> getFrequentItemSet() {
         int[] hashBin = firstScan();
         Set<ItemPair> c2 = secondScan(hashBin);
         if (c2.size() == 0) {
@@ -216,10 +217,10 @@ public class Apriori {
             a[0] = c2i.i;
             a[1] = c2i.j;
             ItemSet c2seti = new ItemSet(2, a);
-            int count = countItemSet(c2seti);
-            if (count >= minSupport) {
+            double support = countItemSet(c2seti);
+            if (support >= minSupport) {
                 if (!this.frequentItemSet.containsKey(c2seti)) {
-                    this.frequentItemSet.put(c2seti, count);
+                    this.frequentItemSet.put(c2seti, support);
                 }
                 lastFrequentSet.add(c2seti);
             }
@@ -260,14 +261,20 @@ public class Apriori {
 
     public void generateRules() {
         getFrequentItemSet();
-        for (Map.Entry<ItemSet, Integer> entry : frequentItemSet.entrySet()) {
+        for (Map.Entry<ItemSet, Double> entry : frequentItemSet.entrySet()) {
             if (entry.getKey().getSize() > 1) {
                 ItemSet frequentItems = entry.getKey();
                 int[] items = frequentItems.getItem();
                 List<Integer> items1 = new ArrayList<>();
                 List<Integer> items2 = new ArrayList<>();
                 double supportAB = frequentItemSet.get(frequentItems);
-                System.out.println(frequentItems+", support: " + supportAB);
+                System.out.print("{");
+                for (int q: frequentItems.getItem()){
+                    System.out.print(itemIndex.get(q)+",");
+                }
+
+                System.out.print("} ");
+                System.out.println(", support: " + supportAB);
 
                 for (int i = 1; i < (1 << items.length); i++) {
                     items1.clear();
@@ -300,12 +307,21 @@ public class Apriori {
                     double supportA = frequentItemSet.get(A);
                     double supportB = frequentItemSet.get(B);
                     if (supportAB / supportA >= minConfidence) {
-
-                        System.out.print(A + ", support: " + supportA);
+                        System.out.print("{");
+                        for (int q: A.getItem()){
+                            System.out.print(itemIndex.get(q)+",");
+                        }
+                        System.out.print("} ");
+                        System.out.print(", support: " + supportA);
 
                         System.out.print(" ==> ");
 
-                        System.out.print(B + ", support " + supportB);
+                        System.out.print("{");
+                        for (int q: B.getItem()){
+                            System.out.print(itemIndex.get(q)+",");
+                        }
+                        System.out.print("} ");
+                        System.out.print(", support " + supportB);
 
                         System.out.println("...   Condidence: " + supportAB / supportA);
                     }

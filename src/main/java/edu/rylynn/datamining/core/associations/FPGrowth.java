@@ -5,15 +5,15 @@ import edu.rylynn.datamining.core.associations.common.ItemSet;
 import java.util.*;
 
 public class FPGrowth {
-    private int minSupport;
-    private int minConfidence;
+    private double minSupport;
+    private double minConfidence;
     private List<Map.Entry<String, Integer>> itemCount;
     private Map<String, Integer> itemIndex;
     private List<String[]> transaction;
     private Map<ItemSet, Integer> frequentItemSet;
     private TreeNode fpTree;
 
-    public FPGrowth(int minSupport, int minConfidence, List<String> data) {
+    public FPGrowth(double minSupport, double minConfidence, List<String> data) {
 
         this.minSupport = minSupport;
         this.minConfidence = minConfidence;
@@ -21,6 +21,7 @@ public class FPGrowth {
         transaction = new ArrayList<>();
         itemCount = new ArrayList<>();
         itemIndex = new HashMap<>();
+        fpTree = new TreeNode(-1, 0, null);
 
         for (String line : data) {
             transaction.add(line.split(","));
@@ -36,7 +37,7 @@ public class FPGrowth {
         list.add("c,d,e,f");
         list.add("c,d,e,f");
         list.add("c,d,e,f");
-        new FPGrowth(2, 2, list).firstScan();
+        new FPGrowth(0.5, 0.7, list).firstScan();
 
 
     }
@@ -61,14 +62,14 @@ public class FPGrowth {
                 return -o1.getValue().compareTo(o2.getValue());
             }
         });
-
-
     }
 
     public void buildTree() {
         for (String[] line : transaction) {
+            TreeNode node = fpTree;
             for (int i = 0; i < line.length; i++) {
                 int index = itemIndex.get(line[i]);
+                node = node.addNode(index);
             }
         }
     }
@@ -80,18 +81,36 @@ public class FPGrowth {
     private class TreeNode {
         int index;
         int count;
-        List<TreeNode> next;
+        List<TreeNode> childs;
+        TreeNode parent;
         TreeNode previousNode;
 
-        public TreeNode(int index, int count, TreeNode previousNode) {
+        public TreeNode(int index, int count, TreeNode parent) {
+
             this.index = index;
             this.count = count;
-            this.next = new ArrayList<>();
+            this.childs = new ArrayList<>();
+            this.parent = parent;
             this.previousNode = null;
         }
 
-        public void addNode() {
+        public TreeNode addNode(int index){
+            for(TreeNode child: childs){
+                if(child.index == index){
+                    child.count++;
+                    return child;
+                }
+            }
+            TreeNode newNode = new TreeNode(index, 1, this.parent);
+            this.parent.childs.add(newNode);
+            return newNode;
+        }
 
+        @Override
+        public String toString() {
+            StringBuffer sb = new StringBuffer();
+            sb.append(index+" : " + count);
+            return sb.toString();
         }
     }
 

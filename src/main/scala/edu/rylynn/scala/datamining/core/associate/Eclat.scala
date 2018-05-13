@@ -2,7 +2,7 @@ package edu.rylynn.scala.datamining.core.associate
 
 class Eclat(minSupport: Double, minConfidence: Double, data: List[String]) {
   val transactions: List[(Set[String], Int)] = data.zipWithIndex.map(t => (t._1.split(",").toSet, t._2))
-  val tSize = transactions.size
+  val tSize:Int = transactions.size
   var tidSets: Map[Set[String], Set[Int]] = Map[Set[String], Set[Int]]()
 
   var frequentItemSet: List[(Set[String], Double)] = List[(Set[String], Double)]()
