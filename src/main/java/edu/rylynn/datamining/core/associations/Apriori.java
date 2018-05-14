@@ -33,7 +33,6 @@ public class Apriori {
         list.add("香煎葱油饼,皮蛋瘦肉粥,八宝粥");
         list.add("香煎葱油饼,八宝粥");
         new Apriori(0.5, 0.7, list).generateRules();
-
     }
 
     public List<String[]> getitemData() {
