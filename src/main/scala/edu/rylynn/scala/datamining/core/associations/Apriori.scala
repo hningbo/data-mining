@@ -1,4 +1,4 @@
-package edu.rylynn.scala.datamining.core.associate
+package edu.rylynn.scala.datamining.core.associations
 
 class Apriori(minSupport: Double, minConfidence: Double, data: List[String]) {
 

@@ -37,7 +37,6 @@ public class ItemSet {
         int h = hash;
         if (h == 0 && size > 0) {
             int val[] = item;
-
             for (int i = 0; i < size; i++) {
                 h = 31 * h + val[i];
             }

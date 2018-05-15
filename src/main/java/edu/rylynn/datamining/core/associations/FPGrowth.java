@@ -14,7 +14,6 @@ public class FPGrowth {
     private TreeNode fpTree;
 
     public FPGrowth(double minSupport, double minConfidence, List<String> data) {
-
         this.minSupport = minSupport;
         this.minConfidence = minConfidence;
         this.frequentItemSet = new HashMap<>();
@@ -27,7 +26,7 @@ public class FPGrowth {
             transaction.add(line.split(","));
         }
 
-        //fpTree = new TreeNode(-1, 0, null, null);
+        fpTree = new TreeNode(-1, 0, null);
     }
 
     public static void main(String[] args) {

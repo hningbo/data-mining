@@ -1,4 +1,4 @@
-package edu.rylynn.scala.datamining.core.associate
+package edu.rylynn.scala.datamining.core.associations
 
 class Eclat(minSupport: Double, minConfidence: Double, data: List[String]) {
   val transactions: List[(Set[String], Int)] = data.zipWithIndex.map(t => (t._1.split(",").toSet, t._2))
