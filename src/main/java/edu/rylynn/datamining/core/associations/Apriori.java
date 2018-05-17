@@ -97,7 +97,7 @@ public class Apriori {
         Set<ItemPair> c2 = new HashSet<>();
         for (String[] line : itemData) {
             for (int i = 0; i < line.length; i++) {
-                double supporti = (double)transaction.get(line[i])/(double)itemData.size();
+                double supporti = (double) transaction.get(line[i]) / (double) itemData.size();
                 if (supporti >= minSupport) {
                     int[] seti = new int[1];
                     seti[0] = itemIndex.indexOf(line[i]);
@@ -107,7 +107,7 @@ public class Apriori {
                         this.frequentItemSet.put(itemSeti, supporti);
                     }
                     for (int j = i + 1; j < line.length; j++) {
-                        double supportj = (double)transaction.get(line[j])/(double)itemData.size();
+                        double supportj = (double) transaction.get(line[j]) / (double) itemData.size();
                         if (supportj >= minSupport) {
                             int[] setj = new int[1];
                             setj[0] = itemIndex.indexOf(line[j]);
@@ -181,7 +181,7 @@ public class Apriori {
                 count++;
             }
         }
-        return (double)count/(double)itemData.size();
+        return (double) count / (double) itemData.size();
     }
 
     private List<ItemSet> generateSubSet(ItemSet itemSet) {
@@ -268,8 +268,8 @@ public class Apriori {
                 List<Integer> items2 = new ArrayList<>();
                 double supportAB = frequentItemSet.get(frequentItems);
                 System.out.print("{");
-                for (int q: frequentItems.getItem()){
-                    System.out.print(itemIndex.get(q)+",");
+                for (int q : frequentItems.getItem()) {
+                    System.out.print(itemIndex.get(q) + ",");
                 }
 
                 System.out.print("} ");
@@ -307,8 +307,8 @@ public class Apriori {
                     double supportB = frequentItemSet.get(B);
                     if (supportAB / supportA >= minConfidence) {
                         System.out.print("{");
-                        for (int q: A.getItem()){
-                            System.out.print(itemIndex.get(q)+",");
+                        for (int q : A.getItem()) {
+                            System.out.print(itemIndex.get(q) + ",");
                         }
                         System.out.print("} ");
                         System.out.print(", support: " + supportA);
@@ -316,8 +316,8 @@ public class Apriori {
                         System.out.print(" ==> ");
 
                         System.out.print("{");
-                        for (int q: B.getItem()){
-                            System.out.print(itemIndex.get(q)+",");
+                        for (int q : B.getItem()) {
+                            System.out.print(itemIndex.get(q) + ",");
                         }
                         System.out.print("} ");
                         System.out.print(", support " + supportB);

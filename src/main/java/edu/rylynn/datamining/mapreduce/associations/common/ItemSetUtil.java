@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ItemSetUtil {
-    private List<ItemSet> generateSubSet(ItemSet itemSet) {
+    public static List<ItemSet> generateSubSet(ItemSet itemSet) {
         List<ItemSet> subSets = new ArrayList<>();
         int[] items = itemSet.getItem();
         int superSetLen = items.length;
@@ -23,7 +23,7 @@ public class ItemSetUtil {
         return subSets;
     }
 
-    private ItemSet generateSuperSet(ItemSet cn1, ItemSet cn2) {
+    public static ItemSet generateSuperSet(ItemSet cn1, ItemSet cn2) {
         int[] cn1Item = cn1.getItem();
         int[] cn2Item = cn2.getItem();
         int len1 = cn1Item.length;

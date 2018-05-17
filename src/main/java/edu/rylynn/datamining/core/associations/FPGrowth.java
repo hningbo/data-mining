@@ -8,6 +8,7 @@ public class FPGrowth {
     private double minSupport;
     private double minConfidence;
     private List<Map.Entry<String, Integer>> itemCount;
+    private List<Map.Entry<String, TreeNode>> itemTable;
     private Map<String, Integer> itemIndex;
     private List<String[]> transaction;
     private Map<ItemSet, Integer> frequentItemSet;
@@ -21,11 +22,9 @@ public class FPGrowth {
         itemCount = new ArrayList<>();
         itemIndex = new HashMap<>();
         fpTree = new TreeNode(-1, 0, null);
-
         for (String line : data) {
             transaction.add(line.split(","));
         }
-
         fpTree = new TreeNode(-1, 0, null);
     }
 
@@ -61,6 +60,14 @@ public class FPGrowth {
                 return -o1.getValue().compareTo(o2.getValue());
             }
         });
+
+
+        for (Map.Entry<String, Integer> entry : itemCount) {
+
+            if ((double) entry.getValue() / (double) transaction.size() >= minSupport) {
+
+            }
+        }
     }
 
     public void buildTree() {
@@ -74,7 +81,25 @@ public class FPGrowth {
     }
 
     public void getFrequentItemSetFromTree() {
+        for (int i = itemTable.size() - 1; i > 0; i--) {
+            String item = itemTable.get(i).getKey();
+            TreeNode thisNode = itemTable.get(i).getValue();
+            Map<List<Integer>, Integer> fpPattern = new HashMap<>();
+            while (thisNode.previousNode != null) {
+                TreeNode treeTail = thisNode.previousNode;
 
+                List<Integer> fpItems = new ArrayList<>();
+                int count = treeTail.count;
+                treeTail = treeTail.parent;
+                while (treeTail.parent != null) {
+                    fpItems.add(treeTail.index);
+                    treeTail = treeTail.parent;
+                }
+
+                fpPattern.put(fpItems, count);
+            }
+
+        }
     }
 
     private class TreeNode {
@@ -93,9 +118,9 @@ public class FPGrowth {
             this.previousNode = null;
         }
 
-        public TreeNode addNode(int index){
-            for(TreeNode child: childs){
-                if(child.index == index){
+        public TreeNode addNode(int index) {
+            for (TreeNode child : childs) {
+                if (child.index == index) {
                     child.count++;
                     return child;
                 }
@@ -108,11 +133,9 @@ public class FPGrowth {
         @Override
         public String toString() {
             StringBuffer sb = new StringBuffer();
-            sb.append(index+" : " + count);
+            sb.append(index + " : " + count);
             return sb.toString();
         }
     }
 
 }
-
-

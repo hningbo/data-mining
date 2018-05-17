@@ -24,11 +24,9 @@ public class ItemSet {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("ItemSet:{");
         for (int i : item) {
             sb.append(i + ",");
         }
-        sb.append("}");
         return sb.toString();
     }
 
