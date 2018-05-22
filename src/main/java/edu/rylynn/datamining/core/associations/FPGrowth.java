@@ -7,8 +7,9 @@ import java.util.*;
 public class FPGrowth {
     private double minSupport;
     private double minConfidence;
-    private List<Map.Entry<String, Integer>> itemCount;
-    private List<Map.Entry<String, TreeNode>> itemTable;
+    private int size;
+    private List<Integer> sortedIndex;
+    private List<TreeNode> itemTable;
     private Map<String, Integer> itemIndex;
     private List<String[]> transaction;
     private Map<ItemSet, Integer> frequentItemSet;
@@ -18,14 +19,15 @@ public class FPGrowth {
         this.minSupport = minSupport;
         this.minConfidence = minConfidence;
         this.frequentItemSet = new HashMap<>();
-        transaction = new ArrayList<>();
-        itemCount = new ArrayList<>();
-        itemIndex = new HashMap<>();
+        this.sortedIndex = new ArrayList<>();
+        this.transaction = new ArrayList<>();
+        this.itemTable = new ArrayList<>();
+        this.itemIndex = new HashMap<>();
+        this.size = data.size();
         fpTree = new TreeNode(-1, 0, null);
         for (String line : data) {
             transaction.add(line.split(","));
         }
-        fpTree = new TreeNode(-1, 0, null);
     }
 
     public static void main(String[] args) {
@@ -35,63 +37,71 @@ public class FPGrowth {
         list.add("c,d,e,f");
         list.add("c,d,e,f");
         list.add("c,d,e,f");
-        new FPGrowth(0.5, 0.7, list).firstScan();
+        new FPGrowth(0.5, 0.7, list).buildTree();
 
 
     }
 
     public void firstScan() {
         int index = 1;
-        Map<String, Integer> tempItemCount = new HashMap<>();
         for (String[] line : transaction) {
             for (int i = 0; i < line.length; i++) {
-                if (tempItemCount.containsKey(line[i])) {
-                    tempItemCount.put(line[i], tempItemCount.get(line[i]) + 1);
+                if (itemIndex.containsKey(line[i])) {
+                    int thisIndex = itemIndex.get(line[i]);
+                    TreeNode node = itemTable.get(thisIndex - 1);
+                    node.count++;
                 } else {
-                    tempItemCount.put(line[i], 1);
+                    itemTable.add(new TreeNode(index, 1, null));
                     itemIndex.put(line[i], index++);
                 }
             }
         }
-        itemCount = new ArrayList<Map.Entry<String, Integer>>(tempItemCount.entrySet());
-        Collections.sort(itemCount, new Comparator<Map.Entry<String, Integer>>() {
-            @Override
-            public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
-                return -o1.getValue().compareTo(o2.getValue());
+        Collections.sort(itemTable, new Comparator<TreeNode>() {
+            public int compare(TreeNode t1, TreeNode t2) {
+                return t2.count - t1.count;
             }
         });
-
-
-        for (Map.Entry<String, Integer> entry : itemCount) {
-
-            if ((double) entry.getValue() / (double) transaction.size() >= minSupport) {
-
+        for (TreeNode tableNode : itemTable) {
+            if (tableNode.count < this.size * this.minSupport) {
+                itemTable.remove(tableNode);
             }
         }
     }
 
     public void buildTree() {
+        firstScan();
+        System.out.println(itemTable);
         for (String[] line : transaction) {
             TreeNode node = fpTree;
+            List<Integer> thisLineIndex = new ArrayList<>();
             for (int i = 0; i < line.length; i++) {
-                int index = itemIndex.get(line[i]);
-                node = node.addNode(index);
+                thisLineIndex.add(itemIndex.get(line[i]));
+            }
+            for (TreeNode tableNode : itemTable) {
+                if (thisLineIndex.contains(tableNode.index)) {
+                    TreeNode newNode = node.addNode(tableNode.index);
+                    newNode.previousNode = node.previousNode;
+                    node.previousNode = newNode;
+                    node = newNode;   //TODO: there may be something wrong...
+                }
             }
         }
+
+
     }
 
     public void getFrequentItemSetFromTree() {
-        for (int i = itemTable.size() - 1; i > 0; i--) {
-            String item = itemTable.get(i).getKey();
-            TreeNode thisNode = itemTable.get(i).getValue();
+        buildTree();
+        for (int i = itemTable.size(); i >= 1; i--) {
+            int index = itemTable.get(i).index;
+            TreeNode thisNode = itemTable.get(index);
             Map<List<Integer>, Integer> fpPattern = new HashMap<>();
             while (thisNode.previousNode != null) {
                 TreeNode treeTail = thisNode.previousNode;
-
                 List<Integer> fpItems = new ArrayList<>();
                 int count = treeTail.count;
                 treeTail = treeTail.parent;
-                while (treeTail.parent != null) {
+                while (treeTail.parent.index != -1) {
                     fpItems.add(treeTail.index);
                     treeTail = treeTail.parent;
                 }
@@ -109,8 +119,7 @@ public class FPGrowth {
         TreeNode parent;
         TreeNode previousNode;
 
-        public TreeNode(int index, int count, TreeNode parent) {
-
+        TreeNode(int index, int count, TreeNode parent) {
             this.index = index;
             this.count = count;
             this.childs = new ArrayList<>();
@@ -118,24 +127,21 @@ public class FPGrowth {
             this.previousNode = null;
         }
 
-        public TreeNode addNode(int index) {
+        TreeNode addNode(int index) {
             for (TreeNode child : childs) {
                 if (child.index == index) {
                     child.count++;
                     return child;
                 }
             }
-            TreeNode newNode = new TreeNode(index, 1, this.parent);
-            this.parent.childs.add(newNode);
+            TreeNode newNode = new TreeNode(index, 1, this);
+            this.childs.add(newNode);
             return newNode;
         }
 
         @Override
         public String toString() {
-            StringBuffer sb = new StringBuffer();
-            sb.append(index + " : " + count);
-            return sb.toString();
+            return (index + " : " + count);
         }
     }
-
 }
