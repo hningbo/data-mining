@@ -37,7 +37,7 @@ public class FPGrowth {
         list.add("c,d,e,f");
         list.add("c,d,e,f");
         list.add("c,d,e,f");
-        new FPGrowth(0.5, 0.7, list).buildTree();
+        new FPGrowth(0.5, 0.7, list).getFrequentPatternBaseFromTree();
 
 
     }
@@ -61,55 +61,56 @@ public class FPGrowth {
                 return t2.count - t1.count;
             }
         });
+        List<TreeNode> removeNode = new ArrayList<>();
         for (TreeNode tableNode : itemTable) {
             if (tableNode.count < this.size * this.minSupport) {
-                itemTable.remove(tableNode);
+                removeNode.add(tableNode);
             }
         }
+        itemTable.removeAll(removeNode);
     }
 
-    public void buildTree() {
+    private void buildTree() {
         firstScan();
         System.out.println(itemTable);
         for (String[] line : transaction) {
             TreeNode node = fpTree;
             List<Integer> thisLineIndex = new ArrayList<>();
-            for (int i = 0; i < line.length; i++) {
-                thisLineIndex.add(itemIndex.get(line[i]));
+            for (String aLine : line) {
+                thisLineIndex.add(itemIndex.get(aLine));
             }
+
             for (TreeNode tableNode : itemTable) {
                 if (thisLineIndex.contains(tableNode.index)) {
-                    TreeNode newNode = node.addNode(tableNode.index);
-                    newNode.previousNode = node.previousNode;
-                    node.previousNode = newNode;
-                    node = newNode;   //TODO: there may be something wrong...
+                    node = node.addNode(tableNode.index);
+                    if (node != tableNode.previousNode) {
+                        node.previousNode = tableNode.previousNode;
+                    }
+                    tableNode.previousNode = node;
                 }
             }
+
         }
-
-
     }
 
-    public void getFrequentItemSetFromTree() {
+    public void getFrequentPatternBaseFromTree() {
         buildTree();
-        for (int i = itemTable.size(); i >= 1; i--) {
-            int index = itemTable.get(i).index;
-            TreeNode thisNode = itemTable.get(index);
-            Map<List<Integer>, Integer> fpPattern = new HashMap<>();
+        Map<List<Integer>, Integer> fpBase = new HashMap<>();
+        for (int i = itemTable.size() - 1; i > 0; i--) {
+            TreeNode thisNode = itemTable.get(i);
             while (thisNode.previousNode != null) {
-                TreeNode treeTail = thisNode.previousNode;
-                List<Integer> fpItems = new ArrayList<>();
+                TreeNode treeTail = thisNode.previousNode.parent;
+                List<Integer> fpBaseItems = new ArrayList<>();
                 int count = treeTail.count;
-                treeTail = treeTail.parent;
-                while (treeTail.parent.index != -1) {
-                    fpItems.add(treeTail.index);
+                while (treeTail.index != -1) {
+                    fpBaseItems.add(treeTail.index);
                     treeTail = treeTail.parent;
                 }
-
-                fpPattern.put(fpItems, count);
+                fpBase.put(fpBaseItems, count);
+                thisNode = thisNode.previousNode;
             }
-
         }
+        System.out.println(fpBase);
     }
 
     private class TreeNode {
@@ -142,6 +143,18 @@ public class FPGrowth {
         @Override
         public String toString() {
             return (index + " : " + count);
+        }
+    }
+
+    private class FequentPatternBase {
+        int start;
+        Set<Integer> path;
+        int count;
+
+        public FequentPatternBase(int start, Set<Integer> path, int count) {
+            this.start = start;
+            this.path = path;
+            this.count = count;
         }
     }
 }

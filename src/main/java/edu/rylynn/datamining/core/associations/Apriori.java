@@ -227,27 +227,30 @@ public class Apriori {
 
         while (lastFrequentSet.size() != 0) {//from C_(n-1) get C_n and the lastFrequentSet is the C_(n-1)
             Set<ItemSet> newFrequentSet = new HashSet<>();
-
             for (ItemSet cni : lastFrequentSet) {
                 for (ItemSet cnj : lastFrequentSet) {
                     //get the candicate set
                     ItemSet superSet = generateSuperSet(cni, cnj);
+
                     if (superSet != null) {
-                        //get the subset of the candicate set
-                        //and judge if all the subset of the candicateset is in the frequentItemSet
-                        List<ItemSet> subSets = generateSubSet(superSet);
-                        int flag = 1;
-                        for (ItemSet subSet : subSets) {
-                            if (!this.frequentItemSet.containsKey(subSet)) {
-                                flag = 0;
-                                break;
+                        double support = countItemSet(superSet);
+                        if (support >= minSupport) {
+                            //get the subset of the candicate set
+                            //and judge if all the subset of the candicateset is in the frequentItemSet
+                            List<ItemSet> subSets = generateSubSet(superSet);
+                            int flag = 1;
+                            for (ItemSet subSet : subSets) {
+                                if (!this.frequentItemSet.containsKey(subSet)) {
+                                    flag = 0;
+                                    break;
+                                }
                             }
-                        }
-                        if (flag == 1) {
-                            if (!this.frequentItemSet.containsKey(superSet)) {
-                                frequentItemSet.put(superSet, countItemSet(superSet));
+                            if (flag == 1) {
+                                if (!this.frequentItemSet.containsKey(superSet)) {
+                                    frequentItemSet.put(superSet, support);
+                                }
+                                newFrequentSet.add(superSet);
                             }
-                            newFrequentSet.add(superSet);
                         }
                     }
                 }
