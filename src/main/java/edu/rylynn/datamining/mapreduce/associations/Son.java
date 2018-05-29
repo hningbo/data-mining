@@ -1,9 +1,12 @@
 package edu.rylynn.datamining.mapreduce.associations;
 
-import edu.rylynn.datamining.core.associations.common.ItemSet;
+import edu.rylynn.datamining.mapreduce.associations.common.ItemSet;
+import edu.rylynn.datamining.mapreduce.associations.common.ItemSetUtil;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -11,7 +14,10 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 
 public class Son {
@@ -28,11 +34,11 @@ public class Son {
         subJob.setJarByClass(Son.class);
         subJob.setMapperClass(AprioriMapper.class);
         subJob.setMapOutputKeyClass(Text.class);
-        subJob.setMapOutputKeyClass(LongWritable.class);
+        subJob.setMapOutputValueClass(NullWritable.class);
 
         subJob.setReducerClass(AprioriReducer.class);
-        subJob.setMapOutputKeyClass(Text.class);
-        subJob.setMapOutputKeyClass(LongWritable.class);
+        subJob.setOutputKeyClass(Text.class);
+        subJob.setOutputValueClass(LongWritable.class);
 
         FileInputFormat.addInputPath(subJob, new Path("hdfs://localhost:9000/user/rylynn/apriori-son/input"));
         FileOutputFormat.setOutputPath(subJob, new Path("hdfs://localhost:9000/user/rylynn/apriori-son/sub_output"));
@@ -42,19 +48,19 @@ public class Son {
         job.setJarByClass(Son.class);
         job.setMapperClass(AprioriCountMapper.class);
         job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputKeyClass(LongWritable.class);
+        job.setMapOutputValueClass(LongWritable.class);
 
         job.setReducerClass(AprioriCountReducer.class);
-        job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputKeyClass(LongWritable.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(LongWritable.class);
 
-        FileInputFormat.addInputPath(job, new Path("hdfs://localhost:9000/user/rylynn/apriori-son/sub_output"));
+        FileInputFormat.addInputPath(job, new Path("hdfs://localhost:9000/user/rylynn/apriori-son/input"));
         FileOutputFormat.setOutputPath(job, new Path("hdfs://localhost:9000/user/rylynn/apriori-son/final_output"));
         System.out.println(job.waitForCompletion(true));
 
     }
 
-    public static class AprioriMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
+    public static class AprioriMapper extends Mapper<LongWritable, Text, Text, NullWritable> {
         private int subMinSupport;
         private List<String[]> itemData;
         private Set<ItemSet> frequentItemSet;
@@ -68,36 +74,6 @@ public class Son {
             frequentItemSet = new HashSet<>();
             itemIndex = new ArrayList<>();
             transaction = new HashMap<>();
-        }
-
-        private ItemSet generateSuperSet(ItemSet cn1, ItemSet cn2) {
-            int[] cn1Item = cn1.getItem();
-            int[] cn2Item = cn2.getItem();
-            int len1 = cn1Item.length;
-            int len2 = cn2Item.length;
-            int[] superSet = new int[len1 + 1];
-            if (len1 == len2) {
-                int flag = 1;
-                for (int i = 0; i < len1 - 1; i++) {
-                    if (cn1Item[i] != cn2Item[i]) {
-                        return null;
-                    } else {
-                        superSet[i] = cn1Item[i];
-                    }
-                }
-                if (cn1Item[len1 - 1] != cn2Item[len1 - 1]) {
-                    if (cn1Item[len1 - 1] < cn2Item[len1 - 1]) {
-                        superSet[len1 - 1] = cn1Item[len1 - 1];
-                        superSet[len1] = cn2Item[len1 - 1];
-                    } else {
-                        superSet[len1 - 1] = cn2Item[len1 - 1];
-                        superSet[len1] = cn1Item[len1 - 1];
-                    }
-
-                    return new ItemSet(len1 + 1, superSet);
-                }
-            }
-            return null;
         }
 
         private int countItemSet(ItemSet itemSet) {
@@ -124,25 +100,7 @@ public class Son {
             return count;
         }
 
-        private List<ItemSet> generateSubSet(ItemSet itemSet) {
-            List<ItemSet> subSets = new ArrayList<>();
-            int[] items = itemSet.getItem();
-            int superSetLen = items.length;
-            for (int i = 0; i < items.length; i++) {
-                int k = 0;
-                int[] subSetItems = new int[superSetLen - 1];
-                for (int j = 0; j < items.length; j++) {
-                    if (i != j) {
-                        subSetItems[k++] = items[j];
-                    }
-                }
-                subSets.add(new ItemSet(superSetLen - 1, subSetItems));
-            }
-            return subSets;
-        }
-
-        public Set<ItemSet> getFrequentItemSet() {
-
+        Set<ItemSet> getFrequentItemSet() {
             for (String[] line : itemData) {
                 for (int i = 0; i < line.length; i++) {
                     if (transaction.containsKey(line[i])) {
@@ -161,7 +119,6 @@ public class Son {
                     item[0] = itemIndex.indexOf(entry.getKey());
                     lastFrequentSet.add(new ItemSet(1, item));
                     frequentItemSet.add(new ItemSet(1, item));
-                    System.out.println(item[0]);
                 }
             }
 
@@ -171,14 +128,14 @@ public class Son {
                 for (ItemSet cni : lastFrequentSet) {
                     for (ItemSet cnj : lastFrequentSet) {
                         //get the candicate set
-                        ItemSet superSet = generateSuperSet(cni, cnj);
+                        ItemSet superSet = ItemSetUtil.generateSuperSet(cni, cnj);
 
                         if (superSet != null) {
                             int support = countItemSet(superSet);
                             if (support >= subMinSupport) {
                                 //get the subset of the candicate set
                                 //and judge if all the subset of the candicateset is in the frequentItemSet
-                                List<ItemSet> subSets = generateSubSet(superSet);
+                                List<ItemSet> subSets = ItemSetUtil.generateSubSet(superSet);
                                 int flag = 1;
                                 for (ItemSet subSet : subSets) {
                                     if (!this.frequentItemSet.contains(subSet)) {
@@ -214,29 +171,62 @@ public class Son {
             Configuration conf = new Configuration();
             subMinSupport = conf.getInt("subMinSupport", 2);
             Set<ItemSet> frequentItemSet = getFrequentItemSet();
-            long count = 1L;
-            LongWritable value = new LongWritable(count);
             for (ItemSet set : frequentItemSet) {
-                context.write(new Text(set.toString()), value);
+                StringBuilder items = new StringBuilder();
+                for (int i : set.getItem()) {
+                    items.append(itemIndex.get(i)).append(" ");
+                }
+                context.write(new Text(items.toString()), NullWritable.get());
             }
         }
     }
 
-    public static class AprioriReducer extends Reducer<Text, LongWritable, Text, LongWritable> {
+    public static class AprioriReducer extends Reducer<Text, NullWritable, Text, NullWritable> {
         @Override
-        protected void reduce(Text key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
-            long count = 0L;
-            for (LongWritable value : values) {
-                count += value.get();
-            }
-            context.write(key, new LongWritable(count));
+        protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
+
+            context.write(key, NullWritable.get());
         }
     }
 
-    public static class AprioriCountMapper extends Mapper<Text, LongWritable, Text, LongWritable> {
+    public static class AprioriCountMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
+        private List<String[]> candicateItemSets;
+
         @Override
-        protected void map(Text key, LongWritable value, Context context) throws IOException, InterruptedException {
-            context.write(key, value);
+        protected void setup(Context context) throws IOException, InterruptedException {
+            candicateItemSets = new ArrayList<>();
+            Configuration conf = new Configuration();
+            Path path = new Path("hdfs://localhost:9000/user/rylynn/apriori-son/sub_output" + "/part-r-00000");
+            FileSystem fs = path.getFileSystem(conf);
+            InputStream in;
+            in = fs.open(path);
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            String line = br.readLine();
+            while (line != null) {
+                String[] items = line.split(" ");
+                candicateItemSets.add(items);
+                line = br.readLine();
+            }
+        }
+
+
+        @Override
+        protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            String line = value.toString();
+            LongWritable count = new LongWritable(1);
+            String[] trasaction = line.split(",");
+            Set<String> tSet = new HashSet<String>(Arrays.asList(trasaction));
+            for (String[] candicateItemSet : candicateItemSets) {
+                Set<String> cSet = new HashSet<String>(Arrays.asList(candicateItemSet));
+                if(tSet.containsAll(cSet)){
+                    StringBuilder sb = new StringBuilder();
+                    for(String i: cSet){
+                        sb.append(i).append(" ");
+                    }
+                    context.write(new Text(sb.toString()), count);
+                }
+            }
+
         }
     }
 
@@ -263,3 +253,70 @@ public class Son {
         }
     }
 }
+
+/*
+intput:
+1,2,3,4
+2,3,4,5
+2,3,4,5
+1,2,3,4
+2,3,4,5
+4,5,6,2
+
+ */
+
+/*
+sub_output:
+
+1
+1 2
+1 2 3
+1 2 3 4
+1 2 4
+1 3
+1 3 4
+1 4
+2
+2 3
+2 3 4
+2 3 4 5
+2 3 5
+2 4
+2 4 5
+2 5
+3
+3 4
+3 4 5
+3 5
+4
+4 5
+5
+ */
+
+/*
+final_output:
+
+1 	2
+1 2 	2
+1 2 3 	2
+1 2 3 4 	2
+1 2 4 	2
+1 3 	2
+1 3 4 	2
+1 4 	2
+2 	6
+2 3 	5
+2 3 4 	5
+2 3 4 5 	3
+2 3 5 	3
+2 4 	6
+2 4 5 	4
+2 5 	4
+3 	5
+3 4 	5
+3 4 5 	3
+3 5 	3
+4 	6
+4 5 	4
+5 	4
+ */

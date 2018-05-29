@@ -1,28 +1,9 @@
 package edu.rylynn.datamining.mapreduce.associations.common;
 
-import edu.rylynn.datamining.mapreduce.associations.common.ItemSet;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class ItemSetUtil {
-    public static List<ItemSet> generateSubSet(ItemSet itemSet) {
-        List<ItemSet> subSets = new ArrayList<>();
-        int[] items = itemSet.getItem();
-        int superSetLen = items.length;
-        for (int i = 0; i < items.length; i++) {
-            int k = 0;
-            int[] subSetItems = new int[superSetLen - 1];
-            for (int j = 0; j < items.length; j++) {
-                if (i != j) {
-                    subSetItems[k++] = items[j];
-                }
-            }
-            subSets.add(new ItemSet(superSetLen - 1, subSetItems));
-        }
-        return subSets;
-    }
-
     public static ItemSet generateSuperSet(ItemSet cn1, ItemSet cn2) {
         int[] cn1Item = cn1.getItem();
         int[] cn2Item = cn2.getItem();
@@ -51,5 +32,22 @@ public class ItemSetUtil {
             }
         }
         return null;
+    }
+
+    public static List<ItemSet> generateSubSet(ItemSet itemSet) {
+        List<ItemSet> subSets = new ArrayList<>();
+        int[] items = itemSet.getItem();
+        int superSetLen = items.length;
+        for (int i = 0; i < items.length; i++) {
+            int k = 0;
+            int[] subSetItems = new int[superSetLen - 1];
+            for (int j = 0; j < items.length; j++) {
+                if (i != j) {
+                    subSetItems[k++] = items[j];
+                }
+            }
+            subSets.add(new ItemSet(superSetLen - 1, subSetItems));
+        }
+        return subSets;
     }
 }
