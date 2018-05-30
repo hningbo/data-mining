@@ -78,16 +78,17 @@ public class FPGrowth {
             for(int i = 0; i<line.size(); i++){
                 int flag = 0;
                 for(TreeNode node: fpTree){
-                    if(node.index == i){
+                    if(node.index == line.get(i)){
                         flag = 1;
                         node.count++;
                     }
                 }
-                if(flag == 1){
-                    fpTree.add(new TreeNode(i, 1, null));
+                if(flag == 0){
+                    fpTree.add(new TreeNode(line.get(i), 0, null));
                 }
             }
         }
+
         Collections.sort(fpTree, new Comparator<TreeNode>() {
             public int compare(TreeNode t1, TreeNode t2) {
                 return t2.count - t1.count;
@@ -95,24 +96,28 @@ public class FPGrowth {
         });
         List<TreeNode> removeNode = new ArrayList<>();
         for (TreeNode tableNode : fpTree) {
-            if (tableNode.count < this.size * this.minSupport) {
+            if (tableNode.count < thisTransaction.size() * this.minSupport) {
                 removeNode.add(tableNode);
             }
         }
-        itemTable.removeAll(removeNode);
+        fpTree.removeAll(removeNode);
 
-        TreeNode node = null;
+        TreeNode tree = new TreeNode(-1, 0, null);
         for (List<Integer> line : thisTransaction) {
+            TreeNode node = tree;
             List<Integer> thisLineIndex = new ArrayList<>(line);
             for (TreeNode tableNode : fpTree) {
                 if (thisLineIndex.contains(tableNode.index)) {
-                    node = node.addNode(tableNode.index); //avoid the previous node point to the same node as the now node
-                    if (node != tableNode.previousNode)
+                    //avoid the previous node point to the same node as the now node
+                    node = node.addNode(tableNode.index);
+                    if (node != tableNode.previousNode) {
                         node.previousNode = tableNode.previousNode;
-                    tableNode.previousNode = node;
+                        tableNode.previousNode = node;
+                    }
                 }
             }
         }
+
         return fpTree;
     }
 
@@ -143,19 +148,24 @@ public class FPGrowth {
     }
 
     public void run() {
+        int index = 1;
         List<List<Integer>> trasactionList = new ArrayList<>();
         for (String[] line : transaction) {
             List<Integer> trasactionLine = new ArrayList<>();
             for (String aLine : line) {
+                if (itemIndex.get(aLine) == null){
+                    itemIndex.put(aLine, index++);
+                }
                 trasactionLine.add(itemIndex.get(aLine));
             }
             trasactionList.add(trasactionLine);
         }
-
+        List<TreeNode> fptree = buildTree(trasactionList);
+        fpgrowth(fptree, 1);
     }
 
-    private List<ItemSet> generateSubSet(ItemSet itemSet) {
-        List<ItemSet> subSets = new ArrayList<>();
+    private Set<ItemSet> generateSubSet(ItemSet itemSet) {
+        Set<ItemSet> subSets = new HashSet<>();
         int[] items = itemSet.getItem();
         int superSetLen = items.length;
         for (int i = 0; i < items.length; i++) {
@@ -166,7 +176,14 @@ public class FPGrowth {
                     subSetItems[k++] = items[j];
                 }
             }
-            subSets.add(new ItemSet(superSetLen - 1, subSetItems));
+
+            if(subSetItems.length == 1){
+                subSets.add(new ItemSet(superSetLen - 1, subSetItems));
+            }
+            else{
+                subSets.add(new ItemSet(superSetLen - 1, subSetItems));
+                subSets.addAll(generateSubSet(new ItemSet(superSetLen - 1, subSetItems)));
+            }
         }
         return subSets;
     }
@@ -176,6 +193,7 @@ public class FPGrowth {
         Map<Integer, Integer> pattern = new HashMap<>();
 
         TreeNode node = fpTree.get(0).previousNode;
+        pattern.put(node.index, node.count);
         while (node.childs.size() != 0) {
             if (node.childs.size() == 1) {
                 node = node.childs.get(0);
@@ -192,7 +210,8 @@ public class FPGrowth {
             for (int i = 0; i < keyArray.length; i++) {
                 patternArray[i] = (int) keyArray[i];
             }
-            List<ItemSet> patterns = generateSubSet(new ItemSet(pattern.size(), patternArray));
+            Set<ItemSet> patterns = generateSubSet(new ItemSet(pattern.size(), patternArray));
+            System.out.println(patterns);
             for (ItemSet frequentPattern : patterns) {
                 int[] items = frequentPattern.getItem();
                 int support = pattern.get(items[0]);
@@ -207,10 +226,11 @@ public class FPGrowth {
             List<FrequentPatternBase> patternBases = getFrequentPatternBaseFromTree(fpTree);
             for (FrequentPatternBase patternBase : patternBases) {
                 List<List<Integer>> newTrascation = new ArrayList<>(patternBase.paths.keySet());
-                //TreeNode tree = buildTree(newTrascation);
-                //fpgrowth(tree, start);
+                List<TreeNode> newFptree = buildTree(newTrascation);
+                fpgrowth(newFptree, start);
             }
         }
+        System.out.println(frequentItemSet);
     }
 
     private class TreeNode {
